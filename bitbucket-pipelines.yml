@@ -1,0 +1,85 @@
+definitions:
+  caches:
+    node: ./node_modules
+
+pipelines:
+  default:
+    - step: &execute-e2e-tests
+        name: RUN-UPDATED-TEST-SPEC
+        size: 2x
+        image: mcr.microsoft.com/playwright:v1.39.0-focal
+        caches:
+          - node
+        script:
+          - npm install
+          - export NODE_OPTIONS=--max-old-space-size=7680
+          - export testSpec=$(bash export-env-var.sh)
+          - npm run test:ci
+        artifacts:
+          - 'test-results/**'
+
+  branches:
+    master:
+      - step: *execute-e2e-tests
+
+  custom:
+    run-all-test-specs:
+      - variables:
+          - name: ENVIRONMENT
+            default: DEV
+            allowed-values:
+              - DEV
+              - STAGING
+              - PROD
+              - PROD-EU
+      - step:
+          name: RUN-ALL-TEST-SPECS
+          size: 2x
+          image: mcr.microsoft.com/playwright:v1.39.0-focal
+          caches:
+            - node
+          script:
+            - npm install
+            - export testSpec="*.spec.js"
+            - export NODE_OPTIONS=--max-old-space-size=7680
+            - npm run test:ci
+          artifacts:
+            - 'test-results/**'
+
+    run-selected-test-specs:
+      - variables:
+          - name: ENVIRONMENT
+            default: DEV
+            allowed-values:
+              - DEV
+              - STAGING
+              - PROD
+              - PROD-EU
+          - name: TEST_SPECS
+            default: tc01.spec.js
+            allowed-values:
+              - tc01.spec.js
+              - tc02.spec.js
+              - tc03.spec.js
+              - tc04.spec.js
+              - tc05.spec.js
+              - tc06.spec.js
+              - tc07.spec.js
+              - tc08.spec.js
+              - tc09.spec.js
+              - tc10.spec.js
+              - tc11.spec.js
+              - tc14.spec.js
+      - step:
+          name: RUN-SELECTED-TEST-SPECS
+          size: 2x
+          image: mcr.microsoft.com/playwright:v1.39.0-focal
+          caches:
+            - node
+          script:
+            - npm install
+            - export testSpec=${TEST_SPECS}
+            - export NODE_OPTIONS=--max-old-space-size=7680
+            - npx playwright test tests/testSpecs/${TEST_SPECS}
+          artifacts:
+            - 'test-results/**'
